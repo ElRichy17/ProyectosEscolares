@@ -1,0 +1,123 @@
+/******************************************************************************
+Compresor de archivos Ricardo Adrian Perez Ayon
+TRABAJO INDIVIDUAL
+*******************************************************************************/
+#include <stdio.h>
+#include <string.h>
+#include <malloc.h>
+#define MAX 100
+struct tablafrecuencia{
+    char caracter;
+    int frecuencia;
+};
+struct nodo{
+    char caracter,nuevocodigo[100];
+    int frecuencia;
+    struct nodo *izq,*der;
+};
+void preorder(struct nodo *raiz,char caracter);
+
+int main(){
+    char palabra[MAX],*auxc,*tempchar,nchar,nuevacadena[MAX]="1";
+    int i=0,a,letrasdiferentes=0,*tempint,nint;
+    struct tablafrecuencia tabla[MAX],*auxtf,*temptf;
+    struct nodo *arbol=NULL,*aux;
+    for(i=0;i<MAX;i++){
+        tabla[i].caracter='\0';
+        tabla[i].frecuencia=0;
+    }
+    printf("Introduce una cadena:\n");
+    scanf("%[^\n]s",palabra); //Permite tomar espacios como parte de la cadena
+    auxc=palabra;
+    while(*auxc!='\0'){ //Obtiene las frecuencias
+        auxtf=tabla;
+        while(auxtf->caracter!='\0' && *auxc!=auxtf->caracter){
+            auxtf++;
+        }
+        if(*auxc!=auxtf->caracter){
+            auxtf->caracter=*auxc;
+            letrasdiferentes++;
+        }
+        auxtf->frecuencia++;
+        auxc++;
+    }
+    for(i=0;i<letrasdiferentes-1;i++){ //Sorting burbuja
+        for(a=0;a<letrasdiferentes-i-1;a++){
+            if(tabla[a].frecuencia<tabla[a+1].frecuencia){
+                nchar=tabla[a].caracter;
+                nint=tabla[a].frecuencia;
+                tabla[a].caracter=tabla[a+1].caracter;
+                tabla[a].frecuencia=tabla[a+1].frecuencia;
+                tabla[a+1].caracter=nchar;
+                tabla[a+1].frecuencia=nint;
+            }
+        }
+    }
+    printf("Frecuencias: ");
+    for(i=0;i<letrasdiferentes;i++){ //Imprime la tabla de frecuencias
+        printf("%c - %i ",tabla[i].caracter,tabla[i].frecuencia);
+    }
+    printf("\n\n");
+    
+    for(i=letrasdiferentes-1;i>0;i--){ //Arma el arbol de Huffman, le asigna el caracter | a los que son solo numeros para unas pruebas que estaba haciendo
+        if(arbol==NULL){
+            arbol=malloc(sizeof(struct nodo));
+            //arbol->caracter='|';
+            arbol->izq=(struct nodo*)malloc(sizeof(struct tablafrecuencia));
+            arbol->izq->caracter=tabla[i-1].caracter;
+            arbol->izq->frecuencia=tabla[i-1].frecuencia;
+            arbol->der=(struct nodo*)malloc(sizeof(struct tablafrecuencia));
+            arbol->der->caracter=tabla[i].caracter;
+            arbol->der->frecuencia=tabla[i].frecuencia;
+            arbol->frecuencia=arbol->izq->frecuencia+arbol->der->frecuencia;
+            arbol->izq->izq=NULL;
+            arbol->izq->der=NULL;
+            arbol->der->izq=NULL;
+            arbol->der->der=NULL;
+        }else{
+            aux=malloc(sizeof(struct nodo));
+            //aux->caracter='|';
+            aux->izq=(struct nodo*)malloc(sizeof(struct tablafrecuencia));
+            aux->izq->caracter=tabla[i-1].caracter;
+            aux->izq->frecuencia=tabla[i-1].frecuencia;
+            aux->der=arbol;
+            aux->frecuencia=aux->izq->frecuencia+aux->der->frecuencia;
+            arbol=aux;
+            arbol->izq->izq=NULL;
+            arbol->izq->der=NULL;
+        }
+    }
+    while(aux->der!=NULL){ //Asigna los nuevos codigos dentro del arbol
+        strcpy(aux->izq->nuevocodigo,nuevacadena); 
+        aux->izq->nuevocodigo[strlen(aux->izq->nuevocodigo)-1]='1'; //Cambia el ultimo numero de la cadena por 1
+        //printf(" %c = %s ",aux->izq->caracter,aux->izq->nuevocodigo);
+        aux=aux->der;
+        snprintf(nuevacadena,sizeof nuevacadena+1,"0%s",nuevacadena); //Va agregando 0's a la cadena
+    }
+    aux=arbol;
+    while(aux->der->der!=NULL){ //Asigna el nuevo codigo al caracter que sera todos 0's
+        aux=aux->der;
+    }
+    strcpy(aux->der->nuevocodigo,aux->izq->nuevocodigo);
+    aux->der->nuevocodigo[strlen(aux->der->nuevocodigo)-1]='0';
+    //printf(" %c = %s ",aux->der->caracter,aux->der->nuevocodigo);
+    
+    printf("Despues de la compresion por algoritmo de Huffman, la cadena que resulta es:\n");
+    for(i=0;i<strlen(palabra);i++){
+        preorder(arbol,palabra[i]);
+    }
+    
+    return 0;
+}
+
+void preorder(struct nodo *raiz,char caracter){
+    if(raiz!=NULL){
+        if(raiz->caracter==caracter){
+            printf("%s",raiz->nuevocodigo);
+            //printf(" %c - %i - %s ",raiz->caracter,raiz->frecuencia,raiz->nuevocodigo);
+        }else{
+            preorder(raiz->izq,caracter);
+            preorder(raiz->der,caracter);
+        }
+    }
+}
